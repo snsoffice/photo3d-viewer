@@ -296,13 +296,13 @@ function scaleModelSpots( value ) {
 
     if (1) {
         var geometry = lines.geometry;
-        var attributes = geometry.attributes;        
+        var attributes = geometry.attributes;
         for ( var i = 0, j = 0; i < attributes.position.count / 2; i ++ ) {
             var pos = configData.points3d[ i ];
             j += 3;
-            attributes.position.array[ j ++ ] = pos[ 0 ] * value; 
-            attributes.position.array[ j ++ ] = pos[ 1 ] * value; 
-            attributes.position.array[ j ++ ] = pos[ 2 ] * value; 
+            attributes.position.array[ j ++ ] = pos[ 0 ] * value;
+            attributes.position.array[ j ++ ] = pos[ 1 ] * value;
+            attributes.position.array[ j ++ ] = pos[ 2 ] * value;
         }
         attributes.position.needsUpdate = true;
     }
