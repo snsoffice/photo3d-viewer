@@ -37,7 +37,7 @@ var textureLoader;
 
 // 三维空间点
 var particles;
-var PARTICLE_SIZE = 100;
+var PARTICLE_SIZE = 60;
 
 // 三维空间点和像素坐标的连线
 var lines;
@@ -47,12 +47,11 @@ var raycaster, intersects;
 var mouse, INTERSECTED = null;
 
 var params = {
-    scale: 1.0,
+    scale: 0.5,
     grid: true,
 };
 
-init();
-animate();
+parseURLParameters();
 
 function init() {
     container = document.getElementById( 'container' );
@@ -91,7 +90,6 @@ function init() {
     var photoGeometry = new THREE.PlaneGeometry( width, height );
     // photoGeometry.rotateX( - Math.PI / 2 );
     var photoMesh = new THREE.Mesh( photoGeometry );
-    scene.add( photoMesh );
 
     textureLoader.load( configData.image.url, function ( texture ) {
 
@@ -101,6 +99,7 @@ function init() {
             side: THREE.DoubleSide,
             transparent : true
         } );
+        scene.add( photoMesh );
 
     } );
 
@@ -128,8 +127,8 @@ function init() {
     // container.appendChild( stats.dom );
 
     var gui = new dat.GUI();
-    gui.add( params, 'scale', 0, 1 ).step( 0.1 ).onChange( function( value ) {
-
+    gui.add( params, 'scale', 0, 1.0 ).step( 0.1 ).onChange( function( value ) {
+        scaleModelSpots( 0.5 + value );
     });
     gui.add( params, 'grid' ).onChange( function ( value ) {
         helper.visible = value;
@@ -147,7 +146,8 @@ function init() {
 
     //
     raycaster = new THREE.Raycaster();
-    mouse = new THREE.Vector2();
+    raycaster.params.Points.threshold = 50.0;
+    mouse = new THREE.Vector2(-10000, -10000);
     window.addEventListener( 'resize', onWindowResize, false );
     document.addEventListener( 'mousemove', onDocumentMouseMove, false );
 }
@@ -159,9 +159,6 @@ function animate() {
 }
 
 function render() {
-    // splines.uniform.mesh.visible = params.uniform;
-    // splines.centripetal.mesh.visible = params.centripetal;
-    // splines.chordal.mesh.visible = params.chordal;
     var geometry = particles.geometry;
     var attributes = geometry.attributes;
     raycaster.setFromCamera( mouse, camera );
@@ -170,16 +167,17 @@ function render() {
 	if ( INTERSECTED != intersects[ 0 ].index ) {
 	    attributes.size.array[ INTERSECTED ] = PARTICLE_SIZE;
 	    INTERSECTED = intersects[ 0 ].index;
-	    attributes.size.array[ INTERSECTED ] = PARTICLE_SIZE * 1.25;
+	    attributes.size.array[ INTERSECTED ] = PARTICLE_SIZE * 1.5;
 	    attributes.size.needsUpdate = true;
-            console.log('INTERSECTED is ' + INTERSECTED);
+            showSpotInformation( INTERSECTED );
 	}
-    } else if ( INTERSECTED !== null ) {
-        console.log('Clear INTERSECTED: ' + INTERSECTED);
+    }
+    else if ( INTERSECTED !== null ) {
 	attributes.size.array[ INTERSECTED ] = PARTICLE_SIZE;
 	attributes.size.needsUpdate = true;
 	INTERSECTED = null;
     }
+
     renderer.render( scene, camera );
 }
 
@@ -286,6 +284,30 @@ function createLines() {
 
 }
 
+function scaleModelSpots( value ) {
+    if (1) {
+        particles.scale.setScalar( value );
+        var geometry = particles.geometry;
+        var attributes = geometry.attributes;
+        for ( var i = 0; i < attributes.size.count; i ++ )
+            attributes.size.array[ i ] = PARTICLE_SIZE / value;
+        attributes.size.needsUpdate = true;
+    }
+
+    if (1) {
+        var geometry = lines.geometry;
+        var attributes = geometry.attributes;        
+        for ( var i = 0, j = 0; i < attributes.position.count / 2; i ++ ) {
+            var pos = configData.points3d[ i ];
+            j += 3;
+            attributes.position.array[ j ++ ] = pos[ 0 ] * value; 
+            attributes.position.array[ j ++ ] = pos[ 1 ] * value; 
+            attributes.position.array[ j ++ ] = pos[ 2 ] * value; 
+        }
+        attributes.position.needsUpdate = true;
+    }
+}
+
 function onDocumentMouseMove( event ) {
     event.preventDefault();
     mouse.x = ( event.clientX / window.innerWidth ) * 2 - 1;
@@ -296,4 +318,109 @@ function onWindowResize() {
     camera.aspect = window.innerWidth / window.innerHeight;
     camera.updateProjectionMatrix();
     renderer.setSize( window.innerWidth, window.innerHeight );
+}
+
+function showSpotInformation( index ) {
+    var p = configData.image.points[ index ];
+    var s = configData.points3d[ index ];
+    var html = [ '<table>' ];
+    html.push( '<tr><td>序号</td><td>U</td><td>V</td></tr>' );
+    html.push( '<tr>', '<td>' + index + '</td>', '<td>' + p[ 0 ] + '</td><td>' + p[ 1 ] + '</td></tr>' );
+    html.push( '<tr><td>X</td><td>Y</td><td>Z</td></tr>');
+    html.push( '<tr><td>' + s[ 0 ].toFixed( 2 ) + '</td><td>' + s[ 1 ].toFixed( 2 ) + '</td><td>' + s[ 2 ].toFixed( 2 ) + '</td></tr>' );
+    html.push( '</table>' );
+    document.querySelector( '#message' ).innerHTML = html.join( '' );
+}
+
+function showError( msg ) {
+    alert( msg );
+}
+
+function parseURLParameters() {
+    var URL;
+    if (window.location.hash.length > 0) {
+        // Prefered method since parameters aren't sent to server
+        URL = [window.location.hash.slice(1)];
+    } else {
+        URL = decodeURI(window.location.href).split('?');
+        URL.shift();
+    }
+    if (URL.length < 1) {
+        init();
+        animate();
+        return;
+    }
+    URL = URL[0].split('&');
+    var configFromURL = {};
+    for (var i = 0; i < URL.length; i++) {
+        var option = URL[i].split('=')[0];
+        var value = URL[i].split('=')[1];
+        if (value == '')
+            continue; // Skip options with empty values in URL config
+        switch(option) {
+            case 'hfov': case 'pitch': case 'yaw': case 'haov': case 'vaov':
+            case 'minHfov': case 'maxHfov': case 'minPitch': case 'maxPitch':
+            case 'minYaw': case 'maxYaw': case 'vOffset': case 'autoRotate':
+                configFromURL[option] = Number(value);
+                break;
+            case 'autoLoad': case 'ignoreGPanoXMP':
+                configFromURL[option] = JSON.parse(value);
+                break;
+            case 'author': case 'title': case 'firstScene': case 'fallback':
+            case 'preview': case 'panorama': case 'config':
+                configFromURL[option] = decodeURIComponent(value);
+                break;
+            default:
+                showError('An invalid configuration parameter was specified: ' + option);
+                return;
+        }
+    }
+
+    var request;
+
+    // Check for JSON configuration file
+    if (configFromURL.config) {
+        // Get JSON configuration file
+        request = new XMLHttpRequest();
+        request.onload = function() {
+            if (request.status != 200) {
+                // Display error if JSON can't be loaded
+                var a = document.createElement('a');
+                a.href = configFromURL.config;
+                a.innerHTML = a.href;
+                showError('The file ' + a.outerHTML + ' could not be accessed.');
+                return;
+            }
+
+            var responseMap = JSON.parse(request.responseText);
+
+            // Set JSON file location
+            if (responseMap.basePath === undefined)
+                responseMap.basePath = configFromURL.config.substring(0, configFromURL.config.lastIndexOf('/')+1);
+
+            // Merge options
+            for (var key in responseMap) {
+                if (configFromURL.hasOwnProperty(key)) {
+                    continue;
+                }
+                configFromURL[key] = responseMap[key];
+            }
+
+            // Set title
+            configData = responseMap;
+
+            // Create viewer
+            init();
+            animate();
+
+        };
+        request.open('GET', configFromURL.config);
+        request.send();
+        return;
+    }
+    else {
+        // Create viewer
+        init();
+        animate();
+    }
 }
