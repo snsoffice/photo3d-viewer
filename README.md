@@ -6,13 +6,13 @@
 
 * 下载 [three.js](https://github.com/mrdoob/three.js/releases)
 
-* 解压下载好的文件，拷贝 **examples/js** 到 **src/**
+* 解压下载好的文件，拷贝 **examples/js** 到 **./js**
 
-* 拷贝 **build/three.js** 到 **src/js/**
+* 拷贝 **build/three.js** 到 **./js**
 
 ## 快速开始
 
-使用支持 WebGL 的浏览器（推荐 Firefox）打开 **src/index.html**
+使用支持 WebGL 的浏览器（推荐 Firefox）打开 **index.html**
 
 ## 输入文件格式
 
