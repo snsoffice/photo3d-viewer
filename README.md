@@ -6,13 +6,17 @@
 
 * 下载 [three.js](https://github.com/mrdoob/three.js/releases)
 
-* 解压下载好的文件，拷贝 **examples/js** 到 **js**
+* 解压下载好的文件
 
-* 拷贝 **build/three.js** 到 **js/**
+    * 拷贝 `examples/js` 到 `js/`
+
+    * 拷贝 `build/three.js` 到 `js/`
+    
+    * 拷贝 `examples/textures` 到 `textures/`
 
 ## 快速开始
 
-使用支持 WebGL 的浏览器（推荐 Firefox）打开 **index.html**
+使用支持 WebGL 的浏览器（推荐 Firefox）打开 `index.html`
 
 在浏览器地址栏后面输入需要打开的文件，例如 `index.html?config=debug-data.json`
 
