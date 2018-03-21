@@ -47,7 +47,7 @@ var raycaster, intersects;
 var mouse, INTERSECTED = null;
 
 var params = {
-    scale: 0.5,
+    scale: 0,
     grid: true,
 };
 
@@ -128,7 +128,7 @@ function init() {
 
     var gui = new dat.GUI();
     gui.add( params, 'scale', 0, 1.0 ).step( 0.1 ).onChange( function( value ) {
-        scaleModelSpots( 0.5 + value );
+        scaleModelSpots( 1 + value * 10 );
     });
     gui.add( params, 'grid' ).onChange( function ( value ) {
         helper.visible = value;
@@ -325,7 +325,7 @@ function showSpotInformation( index ) {
     var s = configData.points3d[ index ];
     var html = [ '<table>' ];
     html.push( '<tr><td>序号</td><td>U</td><td>V</td></tr>' );
-    html.push( '<tr>', '<td>' + index + '</td>', '<td>' + p[ 0 ] + '</td><td>' + p[ 1 ] + '</td></tr>' );
+    html.push( '<tr>', '<td>' + index + '</td>', '<td>' + parseInt( p[ 0 ] ) + '</td><td>' + parseInt( p[ 1 ] ) + '</td></tr>' );
     html.push( '<tr><td>X</td><td>Y</td><td>Z</td></tr>');
     html.push( '<tr><td>' + s[ 0 ].toFixed( 2 ) + '</td><td>' + s[ 1 ].toFixed( 2 ) + '</td><td>' + s[ 2 ].toFixed( 2 ) + '</td></tr>' );
     html.push( '</table>' );
