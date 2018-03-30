@@ -71,7 +71,8 @@ String.prototype.format = function () {
     
     // 交互操作
     var raycaster, intersects;
-    var mouse, INTERSECTED = null;
+    var mouse, INTERSECTED = null, INTERSECTED_KP = null;
+
     // 判断鼠标是否在点精灵范围大小内，例如 10 个像素内
     var POINT_THRESHOLD = 10.0;
 
@@ -104,6 +105,9 @@ String.prototype.format = function () {
         // 参考图片透明度
         refopacity: 0.6,
 
+        // 是否显示三维点
+        particle: true,
+
         // 是否显示三维点对应的线条
         particle_line: true,
 
@@ -111,7 +115,7 @@ String.prototype.format = function () {
         distance: 1200,
 
         // 三维空间点的大小
-        particle_size: 60,
+        particle_size: 80,
 
         // 空间坐标缩放比例
         particle_scale: 1,
@@ -177,16 +181,16 @@ String.prototype.format = function () {
                     transparent : true
                 } );
                 scene.add( imagePlane );
-
+                objlines.visible = true;
             } );
 
         // 创建辅助图片
         geometry = new THREE.PlaneGeometry( width, height );
         // geometry.rotateY( - Math.PI / 2 );
         refimagePlane = new THREE.Mesh( geometry );
-        refimagePlane.position.z = options.distance;
-        // refimagePlane.quaternion.setFromAxisAngle( 0, - Math.PI / 2, 0 );
-        // refimagePlane.position.set( 0, - width / 2, height / 2 );
+        // refimagePlane.position.z = options.distance;
+        refimagePlane.quaternion.setFromAxisAngle( new THREE.Vector3( 0, 1, 0 ), - Math.PI / 2 );
+        refimagePlane.position.set( - width / 1.5, 0, height / 2 );
 
         if ( config.refimage && config.refimage.url ) 
 
@@ -199,21 +203,24 @@ String.prototype.format = function () {
                     map: texture,
                     alphaTest: 0.1,
                     side: THREE.DoubleSide,
-                    opacity: 0.6,
+                    opacity: 1.0,
                     transparent : true
                 } );
                 scene.add( refimagePlane );
+                matchlines.visible = true;
 
             } );
 
-        // 创建关键点和匹配线条
+        // 创建图片关键点和匹配线条
         createImageKeypoints( config );
         createRefimageKeypoints( config );
         createMatchLines( config );
+        matchlines.visible = false;
 
         // 创建三维坐标点和线条
         createParticles( config );
         createParticleLines( config );
+        objlines.visible = false;
 
         // 创建辅助表格
         gridHelper = new THREE.GridHelper( width > height ? width : height, 100 );
@@ -226,7 +233,7 @@ String.prototype.format = function () {
 
         // 创建辅助坐标轴
         axesHelper = new THREE.AxesHelper( 1000 );
-        axesHelper.position.set( 0, 0, options.distance + 10 );
+        axesHelper.position.set( 0, 0, 100 );
         axesHelper.visible = options.axes;
         scene.add( axesHelper );
 
@@ -270,34 +277,41 @@ String.prototype.format = function () {
             if ( matchlines ) matchlines.visible = value;
         } );
 
+        gui.add( options, 'refimage' ).onChange( function ( value ) {
+            if ( refimagePlane ) refimagePlane.visible = value;
+            if ( matchlines ) matchlines.visible = value;
+            if ( refkeypoints ) refkeypoints.visible = value;
+        } );
+
+        // gui.add( options, 'refopacity', 0, 1 ).step( 0.1 ).onChange( function( value ) {
+        //     if ( refimagePlane && refimagePlane.material )
+        //         refimagePlane.material.opacity = value;
+        // });
+
+        // gui.add( options, 'distance', 1000, 2000 ).step( 100 ).onChange( function( value ) {
+        //     resetDistance( value );
+        // });
+
+        // gui.add( options, 'particle_size', 60, 120 ).step( 10 ).onChange( function( value ) {
+        // });
+
+        gui.add( options, 'particle' ).onChange( function ( value ) {
+            if ( objlines ) objlines.visible = value;
+            if ( particles ) particles.visible = value;
+        } );
+
         gui.add( options, 'particle_line' ).onChange( function ( value ) {
             if ( objlines ) objlines.visible = value;
         } );
-
-        gui.add( options, 'refimage' ).onChange( function ( value ) {
-            if ( refimagePlane ) refimagePlane.visible = value;
-        } );
-
-        gui.add( options, 'refopacity', 0, 1 ).step( 0.1 ).onChange( function( value ) {
-            if ( refimagePlane && refimagePlane.material )
-                refimagePlane.material.opacity = value;
-        });
-
-        gui.add( options, 'distance', 1000, 2000 ).step( 100 ).onChange( function( value ) {
-            resetDistance( value );
-        });
-
-        gui.add( options, 'particle_size', 30, 80 ).step( 10 ).onChange( function( value ) {
-        });
 
         gui.add( options, 'particle_scale', 0.8, 3.2 ).step( 0.2 ).onChange( function( value ) {
             resetParticleScale( value );
         });
 
-        var colorFolder = gui.addFolder('Palette');
-        colorFolder.addColor(palette, 'particle');
-        colorFolder.addColor(palette, 'match');
-        colorFolder.addColor(palette, 'outiler');
+        // var colorFolder = gui.addFolder('Palette');
+        // colorFolder.addColor(palette, 'particle');
+        // colorFolder.addColor(palette, 'match');
+        // colorFolder.addColor(palette, 'outiler');
         gui.open();
 
         // 鼠标控制方式
@@ -329,23 +343,48 @@ String.prototype.format = function () {
     }
 
     function render() {
-        var geometry = particles.geometry;
-        var attributes = geometry.attributes;
-        raycaster.setFromCamera( mouse, camera );
-        intersects = raycaster.intersectObject( particles );
-        if ( intersects.length > 0 ) {
-	    if ( INTERSECTED != intersects[ 0 ].index ) {
+        if ( particles ) {
+            // 判断鼠标是否在三维点上面
+            var geometry = particles.geometry;
+            var attributes = geometry.attributes;
+            raycaster.setFromCamera( mouse, camera );
+            intersects = raycaster.intersectObject( particles );
+            if ( intersects.length > 0 ) {
+	        if ( INTERSECTED != intersects[ 0 ].index ) {
+	            attributes.size.array[ INTERSECTED ] = options.particle_size;
+	            INTERSECTED = intersects[ 0 ].index;
+	            attributes.size.array[ INTERSECTED ] = options.particle_size * 1.5;
+	            attributes.size.needsUpdate = true;
+	        }
+            }
+            else if ( INTERSECTED !== null ) {
 	        attributes.size.array[ INTERSECTED ] = options.particle_size;
-	        INTERSECTED = intersects[ 0 ].index;
-	        attributes.size.array[ INTERSECTED ] = options.particle_size * 1.5;
 	        attributes.size.needsUpdate = true;
-                showSpotInformation( INTERSECTED );
-	    }
+	        INTERSECTED = null;
+            }
         }
-        else if ( INTERSECTED !== null ) {
-	    attributes.size.array[ INTERSECTED ] = options.particle_size;
-	    attributes.size.needsUpdate = true;
-	    INTERSECTED = null;
+
+        if ( keypoints && matchlines ) {
+            // 判断鼠标是否在基准图片的关键点上
+            geometry = matchlines.geometry;
+            attributes = geometry.attributes;
+            intersects = raycaster.intersectObject( keypoints );
+            if ( intersects.length > 0 ) {
+	        if ( INTERSECTED_KP != intersects[ 0 ].index ) {
+	            attributes.color.array[ 6 * INTERSECTED_KP ] = 0;
+                    attributes.color.array[ 6 * INTERSECTED_KP + 3 ] = 0;
+	            INTERSECTED_KP = intersects[ 0 ].index;
+	            attributes.color.array[ 6 * INTERSECTED_KP ] = 255;
+                    attributes.color.array[ 6 * INTERSECTED_KP + 3 ] = 255;
+	            attributes.color.needsUpdate = true;
+	        }
+            }
+            else if ( INTERSECTED_KP !== null ) {
+	        attributes.color.array[ 6 * INTERSECTED_KP ] = 0;
+                attributes.color.array[ 6 * INTERSECTED_KP + 3 ] = 0;
+	        attributes.color.needsUpdate = true;
+	        INTERSECTED_KP = null;
+            }
         }
 
         renderer.render( scene, camera );
@@ -501,7 +540,7 @@ String.prototype.format = function () {
         }
     }
 
-    function createKeypoints( imagePoints, offset, width, height ) {
+    function createKeypoints( imagePoints, width, height, mat ) {
         var vertexShader =
             'attribute float size;\n' +
 	    'void main() {\n' +
@@ -519,7 +558,7 @@ String.prototype.format = function () {
 	    '}';
 
         var n = imagePoints.length;
-
+        var offset = mat === undefined ? 5 : -5;
         var positions = new Float32Array( n * 3 );
         var sizes = new Float32Array( n );
         var w2 = width / 2;
@@ -532,9 +571,14 @@ String.prototype.format = function () {
 	    sizes[ i ] = options.particle_size * 0.5;
         }
 
+        // 转换关键点坐标，和参考图片一致
+        var attr = new THREE.BufferAttribute( positions, 3 );
+        if ( mat )
+            mat.applyToBufferAttribute( attr );
         var geometry = new THREE.BufferGeometry();
-        geometry.addAttribute( 'position', new THREE.BufferAttribute( positions, 3 ) );
+        geometry.addAttribute( 'position', attr );
         geometry.addAttribute( 'size', new THREE.BufferAttribute( sizes, 1 ) );
+        
         //
         var material = new THREE.ShaderMaterial( {
 	    uniforms: {
@@ -558,13 +602,16 @@ String.prototype.format = function () {
 
     function createImageKeypoints( config ) {        
         var image = config.image;
-        keypoints = createKeypoints( image.points, 5, image.size[ 0 ], image.size[ 1 ] );
+        keypoints = createKeypoints( image.points, image.size[ 0 ], image.size[ 1 ] );
         scene.add( keypoints );
     }
 
     function createRefimageKeypoints( config ) {
         var image = config.refimage;
-        refkeypoints = createKeypoints( image.points, options.distance + 5, image.size[ 0 ], image.size[ 1 ] );
+        var w = image.size[ 0 ], h = image.size[ 1 ];
+        var m = new THREE.Matrix4();
+        m.compose( refimagePlane.position, refimagePlane.quaternion, refimagePlane.scale );
+        refkeypoints = createKeypoints( image.points, w, h, m );
         scene.add( refkeypoints );
     }
 
@@ -572,10 +619,21 @@ String.prototype.format = function () {
         var material = new THREE.LineBasicMaterial( {
             color: 0xffffff,
             opacity: 0.6,
-            linewidth: 1,
+            linewidth: 2,
             vertexColors: THREE.VertexColors,
         } );
+        // material = new THREE.LineDashedMaterial( {
+        //     color: 0xffffff,
+        //     dashSize: 3,
+        //     gapSize: 3,
+        //     linewidth: 1,
+        //     vertexColors: THREE.VertexColors,
+        // } );
+
         var geometry = new THREE.BufferGeometry();
+
+        var m = new THREE.Matrix4();
+        m.compose( refimagePlane.position, refimagePlane.quaternion, refimagePlane.scale );
 
         var positions = [];
         var colors = [];
@@ -586,15 +644,18 @@ String.prototype.format = function () {
         var n = imagePoints.length;
 
         var c = palette.match.slice(0, 3);
+        var v3 = new THREE.Vector3();
 
         for (var i = 0; i < n; i++ ) {
             var x0 = imagePoints[ i ][ 0 ] - w2;
             var y0 = - imagePoints[ i ][ 1 ] + h2;
-            positions.push( x0, y0, 0 );
+            positions.push( x0, y0, 5 );
 
             var x1 = refimagePoints[ i ][ 0 ] - w2;
             var y1 = - refimagePoints[ i ][ 1 ] + h2;
-            positions.push( x1, y1, options.distance );
+            v3.set( x1, y1, -5 );
+            v3.applyMatrix4( m );
+            positions.push( v3.x, v3.y, v3.z );
 
             colors.push( c[0], c[1], c[2] );
             colors.push( c[0], c[1], c[2] );
