@@ -4,55 +4,36 @@
     <title>Photo3d Viewer</title>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">
-    <style>
-      body {
-          font-family: Monospace;
-          background-color: #f0f0f0;
-          margin: 0px;
-          overflow: hidden;
-      }
-
-      #info {
-          position: absolute;
-          top: 0px;
-          width: 100%;
-          padding: 5px;
-          font-family:Monospace;
-          font-size:13px;
-          text-align:center;
-      }
-
-      #message {
-          position: absolute;
-          left: 0px;
-          bottom: 0px;
-          padding: 5px;
-          background: #ccc;
-          font-family:Monospace;
-          font-size:13px;
-          text-align:center;
-      }
-    </style>
+    <link rel="stylesheet" href="css/bootstrap.min.css" type="text/css" />
+    <link rel="stylesheet" href="css/viewer.css" type="text/css" />
   </head>
   <body>
 
+    <div id="toolbox">
+      <input type="file" id="select-config-file" style="display: none" >
+      <button type="button" class="btn btn-success m-2" id="load-config">装载</button>
+    </div>
+
     <div id="container"></div>
 
-    <div id="info">Photo3D Viewer</div>
+    <!-- <div id="info" class="photo3d-title">Photo3D Viewer</div> -->
 
-    <div id="message">移动鼠标到三维坐标点会显示对应的序号、图像坐标和三维坐标值</div>
+    <!-- <div id="message">移动鼠标到三维坐标点会显示对应的序号、图像坐标和三维坐标值</div> -->
 
-    <script src="js/three.js"></script>
+    <script src="libs/three.js/three.js"></script>
 
-    <script src="js/Detector.js"></script>
+    <script src="libs/three.js/Detector.js"></script>
 
+    <script src="libs/three.js/controls/DragControls.js"></script>
+    <script src="libs/three.js/controls/OrbitControls.js"></script>
+    <script src="libs/three.js/controls/TransformControls.js"></script>
 
-    <script src="js/controls/DragControls.js"></script>
-    <script src="js/controls/OrbitControls.js"></script>
-    <script src="js/controls/TransformControls.js"></script>
+    <script src="libs/three.js/libs/stats.min.js"></script>
+    <script src="libs/three.js/libs/dat.gui.min.js"></script>
 
-    <script src="js/libs/stats.min.js"></script>
-    <script src="js/libs/dat.gui.min.js"></script>
+    <script src="libs/jquery.min.js"></script>
+    <script src="libs/popper.min.js"></script>
+    <script src="libs/bootstrap.min.js"></script>
 
     <script src="src/viewer.js"></script>
 

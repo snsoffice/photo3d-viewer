@@ -55,6 +55,14 @@ data.json
 
   },
 
+  "refimage": {
+
+    "url": "http://xxx/yyy/zzz.jpg",
+    "size": [width, height],
+    "points": [ [x, y], [x, y], ... ]
+
+  },
+
   "points3d": [ [x, y, z], ... ]
 
 }

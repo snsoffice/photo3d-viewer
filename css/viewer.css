@@ -1,0 +1,10 @@
+body {
+    overflow: hidden;
+}
+
+#toolbox {
+    position: absolute;
+    top: .6em;
+    left: .6em;
+    z-index: 1;
+}
